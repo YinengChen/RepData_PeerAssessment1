@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(ggplot2)
+library(lattice)
 ```
 
 ## Loading and preprocessing the data
@@ -129,5 +130,46 @@ output2 = cbind(mean_step2,median_step2)
 output = rbind(output1,output2)
 row.names(output) = c("With NA","Fill in Na")
 output
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r}
+n = nrow(tidy_activity)
+
+tidy_activity = tidy_activity %>% mutate(day = weekdays(tidy_activity$date)) %>% mutate(weekdays = vector(mode = "character",length = n))
+
+
+for(i in 1:n){
+  if(tidy_activity$day[i] %in% c("Monday","Tuesday","Wednesday","Thursday", "Friday")){
+    tidy_activity$weekdays[i] = "weekday"
+  } else {
+    tidy_activity$weekdays[i] = "weekend"
+  }
+}
+
+tidy_activity = tidy_activity %>% mutate(weekdays = as.factor(weekdays))  
+```
+
+2. Make a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+
+```{r}
+
+step_interval = aggregate(tidy_activity$steps, list(tidy_activity$interval,tidy_activity$weekdays),mean,na.rm = T)
+
+names(step_interval)[1] = "interval"
+names(step_interval)[2] = "weekdays"
+names(step_interval)[3] = "ave_steps"
+
+step_interval = step_interval %>% mutate(interval = as.numeric(interval))
+ggplot(step_interval, 
+       aes(x = interval, y = ave_steps, group=1, color = weekdays)) +  
+  geom_line() + 
+  facet_grid(weekdays ~ .) +
+  labs(x = "Interval",
+       y = "Average number of steps", 
+       title = "Activity Patterns of Weekdays and Weekends")
 ```
 
