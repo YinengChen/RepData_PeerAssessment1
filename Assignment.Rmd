@@ -2,9 +2,12 @@
 title: "Project_1"
 author: "Yineng Chen"
 date: "2020/6/11"
-output: html_document
+output: 
+  html_document:
+    keep_md: true
 editor_options: 
   chunk_output_type: console
+  
 ---
 
 ```{r setup, include=FALSE}
@@ -55,5 +58,30 @@ median_step = median(step_perday$steps,na.rm = TRUE)
 
 output = cbind(mean_step,median_step)
 output
+```
+
+
+## What is the average daily activity pattern?
+
+Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r}
+step_perinterval = aggregate(activity$steps, list(activity$interval),mean,na.rm = T)
+
+names(step_perinterval)[1] = "intervals"
+names(step_perinterval)[2] = "ave_steps"
+
+
+ggplot(step_perinterval, aes(x = intervals , y = ave_steps)) +
+  geom_line(color ="blue", size=1) + 
+  labs (title = "Avg. Daily Steps", x = "Interval", y = "Average Steps") + theme_bw()
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r}
+n = which.max(step_perinterval$ave_steps)
+max_interval = step_perinterval$intervals[n]
+max_interval
 ```
 
