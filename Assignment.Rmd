@@ -64,7 +64,7 @@ output1
 
 ## What is the average daily activity pattern?
 
-Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
 
 ```{r}
 step_perinterval = aggregate(activity$steps, list(activity$interval),mean,na.rm = T)
