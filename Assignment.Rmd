@@ -16,6 +16,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggplot2)
 library(lattice)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
 ```
 
 ## Loading and preprocessing the data
@@ -72,8 +78,9 @@ step_perinterval = aggregate(activity$steps, list(activity$interval),mean,na.rm 
 names(step_perinterval)[1] = "intervals"
 names(step_perinterval)[2] = "ave_steps"
 
+step_perinterval = step_perinterval %>%  mutate(intervals = as.numeric(intervals))
 
-ggplot(step_perinterval, aes(x = intervals , y = ave_steps)) +
+ggplot(step_perinterval, aes(x = intervals , y = ave_steps, group = 1)) +
   geom_line(color ="blue", size=1) + 
   labs (title = "Avg. Daily Steps", x = "Interval", y = "Average Steps") + theme_bw()
 ```
@@ -138,8 +145,10 @@ output
 
 ```{r}
 n = nrow(tidy_activity)
+Sys.setlocale("LC_TIME", "English")
 
 tidy_activity = tidy_activity %>% mutate(day = weekdays(tidy_activity$date)) %>% mutate(weekdays = vector(mode = "character",length = n))
+
 
 
 for(i in 1:n){
@@ -155,7 +164,7 @@ tidy_activity = tidy_activity %>% mutate(weekdays = as.factor(weekdays))
 
 2. Make a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
 
-```{r}
+```{r results='asis'}
 
 step_interval = aggregate(tidy_activity$steps, list(tidy_activity$interval,tidy_activity$weekdays),mean,na.rm = T)
 
@@ -164,12 +173,31 @@ names(step_interval)[2] = "weekdays"
 names(step_interval)[3] = "ave_steps"
 
 step_interval = step_interval %>% mutate(interval = as.numeric(interval))
-ggplot(step_interval, 
+
+p = ggplot(step_interval, 
        aes(x = interval, y = ave_steps, group=1, color = weekdays)) +  
   geom_line() + 
-  facet_grid(weekdays ~ .) +
+   facet_grid(weekdays~.) +
   labs(x = "Interval",
        y = "Average number of steps", 
        title = "Activity Patterns of Weekdays and Weekends")
+p
+```
+
+```{r results='hide', include=FALSE}
+# Just recreating activityDT from scratch then making the new factor variable. (No need to, just want to be clear on what the entire process is.) 
+activityDT <- data.table::fread(input = "data/activity.csv")
+activityDT[, date := as.POSIXct(date, format = "%Y-%m-%d")]
+activityDT[, `Day of Week`:= weekdays(x = date)]
+activityDT[grepl(pattern = "Monday|Tuesday|Wednesday|Thursday|Friday", x = `Day of Week`), "weekday or weekend"] <- "weekday"
+activityDT[grepl(pattern = "Saturday|Sunday", x = `Day of Week`), "weekday or weekend"] <- "weekend"
+activityDT[, `weekday or weekend` := as.factor(`weekday or weekend`)]
+head(activityDT, 10)
+
+
+activityDT[is.na(steps), "steps"] <- activityDT[, c(lapply(.SD, median, na.rm = TRUE)), .SDcols = c("steps")]
+IntervalDT <- activityDT[, c(lapply(.SD, mean, na.rm = TRUE)), .SDcols = c("steps"), by = .(interval, `weekday or weekend`)] 
+
+ggplot(IntervalDT , aes(x = interval , y = steps, color=`weekday or weekend`)) + geom_line() + labs(title = "Avg. Daily Steps by Weektype", x = "Interval", y = "No. of Steps") + facet_wrap(~`weekday or weekend` , ncol = 1, nrow=2)
 ```
 
