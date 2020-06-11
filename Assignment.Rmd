@@ -33,7 +33,7 @@ activity = activity %>% mutate(date = as.Date(date,  "%Y-%m-%d"))
 1. Calculate the total number of steps taken per day
 
 ```{r}
-step_perday = aggregate(activity$steps, list(activity$date), sum,na.rm = T)
+step_perday = aggregate(activity$steps, list(activity$date), sum,na.rm = F)
 
 names(step_perday)[1] = "date"
 names(step_perday)[2] = "steps"
@@ -56,8 +56,8 @@ ggplot(data = step_perday, aes(x = steps)) +
 mean_step = mean(step_perday$steps,na.rm = TRUE)
 median_step = median(step_perday$steps,na.rm = TRUE)
 
-output = cbind(mean_step,median_step)
-output
+output1 = cbind(mean_step,median_step)
+output1
 ```
 
 
@@ -104,5 +104,30 @@ activityDT[is.na(steps), "steps"] <- activityDT[, c(lapply(.SD, median, na.rm = 
 
 ```{r}
 data.table::fwrite(x = activityDT, file = "data/tidyData.csv", quote = FALSE)
+```
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day.
+
+```{r}
+tidy_activity = read_csv("data/tidyData.csv", col_types = "icf")%>% 
+  mutate(date = as.Date(date,  "%Y-%m-%d"))
+
+step_day_tidy = aggregate(tidy_activity$steps, list(tidy_activity$date), sum,na.rm = T)
+
+names(step_day_tidy)[1] = "date"
+names(step_day_tidy)[2] = "steps"
+
+ggplot(data = step_day_tidy, aes(x = steps)) + 
+  geom_histogram(fill = "lightgreen", binwidth = 1000) +
+  labs(title = "Daily Steps", x = "Steps", y = "Frequency")
+
+# mean and median
+mean_step2 = mean(step_day_tidy$steps,na.rm = TRUE)
+median_step2 = median(step_day_tidy$steps,na.rm = TRUE)
+
+output2 = cbind(mean_step2,median_step2)
+output = rbind(output1,output2)
+row.names(output) = c("With NA","Fill in Na")
+output
 ```
 
