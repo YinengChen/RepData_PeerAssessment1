@@ -22,7 +22,7 @@ library(ggplot2)
 ```{r}
 dir.create("data")
 unzip("activity.zip",exdir = "data")
-activity = read_csv("./data/activity.csv",col_types = "ici", na = "NA")
+activity = read_csv("./data/activity.csv",col_types = "icc", na = "NA")
 
 activity = activity %>% mutate(date = as.Date(date,  "%Y-%m-%d"))
 
@@ -83,5 +83,26 @@ ggplot(step_perinterval, aes(x = intervals , y = ave_steps)) +
 n = which.max(step_perinterval$ave_steps)
 max_interval = step_perinterval$intervals[n]
 max_interval
+```
+
+## Imputing missing values
+
+1. Calculate and report the total number of missing values in the dataset 
+```{r}
+sum(is.na(activity$steps))
+```
+
+2. Devise a strategy for filling in all of the missing values in the dataset. 
+```{r}
+activityDT <- data.table::fread(input = "data/activity.csv")
+
+# Filling in missing values with median of dataset. 
+activityDT[is.na(steps), "steps"] <- activityDT[, c(lapply(.SD, median, na.rm = TRUE)), .SDcols = c("steps")]
+```
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+data.table::fwrite(x = activityDT, file = "data/tidyData.csv", quote = FALSE)
 ```
 
