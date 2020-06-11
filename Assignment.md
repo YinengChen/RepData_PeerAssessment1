@@ -36,7 +36,7 @@ activity = activity %>% mutate(date = as.Date(date,  "%Y-%m-%d"))
 
 
 ```r
-step_perday = aggregate(activity$steps, list(activity$date), sum,na.rm = T)
+step_perday = aggregate(activity$steps, list(activity$date), sum,na.rm = F)
 
 names(step_perday)[1] = "date"
 names(step_perday)[2] = "steps"
@@ -51,7 +51,11 @@ ggplot(data = step_perday, aes(x = steps)) +
   labs(title = "Daily Steps", x = "Steps", y = "Frequency")
 ```
 
-![](Assignment_files/figure-html/unnamed-chunk-3-1.png)<!-- -->
+```
+## Warning: Removed 8 rows containing non-finite values (stat_bin).
+```
+
+<img src="Assignment_files/figure-html/unnamed-chunk-3-1.png" width="90%" />
 
 3. Calculate and report the mean and median of the total number of steps taken per day
 
@@ -60,19 +64,19 @@ ggplot(data = step_perday, aes(x = steps)) +
 mean_step = mean(step_perday$steps,na.rm = TRUE)
 median_step = median(step_perday$steps,na.rm = TRUE)
 
-output = cbind(mean_step,median_step)
-output
+output1 = cbind(mean_step,median_step)
+output1
 ```
 
 ```
 ##      mean_step median_step
-## [1,]   9354.23       10395
+## [1,]  10766.19       10765
 ```
 
 
 ## What is the average daily activity pattern?
 
-Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
 
 
 ```r
@@ -81,18 +85,14 @@ step_perinterval = aggregate(activity$steps, list(activity$interval),mean,na.rm 
 names(step_perinterval)[1] = "intervals"
 names(step_perinterval)[2] = "ave_steps"
 
+step_perinterval = step_perinterval %>%  mutate(intervals = as.numeric(intervals))
 
-ggplot(step_perinterval, aes(x = intervals , y = ave_steps)) +
+ggplot(step_perinterval, aes(x = intervals , y = ave_steps, group = 1)) +
   geom_line(color ="blue", size=1) + 
   labs (title = "Avg. Daily Steps", x = "Interval", y = "Average Steps") + theme_bw()
 ```
 
-```
-## geom_path: Each group consists of only one observation. Do you need to adjust
-## the group aesthetic?
-```
-
-![](Assignment_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+<img src="Assignment_files/figure-html/unnamed-chunk-5-1.png" width="90%" />
 
 2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
@@ -104,7 +104,7 @@ max_interval
 ```
 
 ```
-## [1] "835"
+## [1] 835
 ```
 
 ## Imputing missing values
@@ -134,4 +134,96 @@ activityDT[is.na(steps), "steps"] <- activityDT[, c(lapply(.SD, median, na.rm = 
 ```r
 data.table::fwrite(x = activityDT, file = "data/tidyData.csv", quote = FALSE)
 ```
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day.
+
+
+```r
+tidy_activity = read_csv("data/tidyData.csv", col_types = "icf")%>% 
+  mutate(date = as.Date(date,  "%Y-%m-%d"))
+
+step_day_tidy = aggregate(tidy_activity$steps, list(tidy_activity$date), sum,na.rm = T)
+
+names(step_day_tidy)[1] = "date"
+names(step_day_tidy)[2] = "steps"
+
+ggplot(data = step_day_tidy, aes(x = steps)) + 
+  geom_histogram(fill = "lightgreen", binwidth = 1000) +
+  labs(title = "Daily Steps", x = "Steps", y = "Frequency")
+```
+
+<img src="Assignment_files/figure-html/unnamed-chunk-10-1.png" width="90%" />
+
+```r
+# mean and median
+mean_step2 = mean(step_day_tidy$steps,na.rm = TRUE)
+median_step2 = median(step_day_tidy$steps,na.rm = TRUE)
+
+output2 = cbind(mean_step2,median_step2)
+output = rbind(output1,output2)
+row.names(output) = c("With NA","Fill in Na")
+output
+```
+
+```
+##            mean_step median_step
+## With NA     10766.19       10765
+## Fill in Na   9354.23       10395
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+
+```r
+n = nrow(tidy_activity)
+Sys.setlocale("LC_TIME", "English")
+```
+
+```
+## [1] "English_United States.1252"
+```
+
+```r
+tidy_activity = tidy_activity %>% mutate(day = weekdays(tidy_activity$date)) %>% mutate(weekdays = vector(mode = "character",length = n))
+
+
+
+for(i in 1:n){
+  if(tidy_activity$day[i] %in% c("Monday","Tuesday","Wednesday","Thursday", "Friday")){
+    tidy_activity$weekdays[i] = "weekday"
+  } else {
+    tidy_activity$weekdays[i] = "weekend"
+  }
+}
+
+tidy_activity = tidy_activity %>% mutate(weekdays = as.factor(weekdays))  
+```
+
+2. Make a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+
+
+```r
+step_interval = aggregate(tidy_activity$steps, list(tidy_activity$interval,tidy_activity$weekdays),mean,na.rm = T)
+
+names(step_interval)[1] = "interval"
+names(step_interval)[2] = "weekdays"
+names(step_interval)[3] = "ave_steps"
+
+step_interval = step_interval %>% mutate(interval = as.numeric(interval))
+
+p = ggplot(step_interval, 
+       aes(x = interval, y = ave_steps, group=1, color = weekdays)) +  
+  geom_line() + 
+   facet_grid(weekdays~.) +
+  labs(x = "Interval",
+       y = "Average number of steps", 
+       title = "Activity Patterns of Weekdays and Weekends")
+p
+```
+
+<img src="Assignment_files/figure-html/unnamed-chunk-12-1.png" width="90%" />
+
+
 
